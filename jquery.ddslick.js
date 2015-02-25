@@ -32,7 +32,12 @@
         showSelectedHTML: true,
         clickOffToClose: true,
 		embedCSS: true,
-        onSelected: function () { }
+        onSelected: function () { },
+		enableKeyboard: true,
+    },
+
+    keyCode = {
+        enter : 13, pageUp: 33, pageDown: 34, end: 35, home: 36, leftArrow: 37, upArrow: 38, rightArrow: 39, downArrow: 40
     },
 
     ddOptionsHtml = '<ul class="dd-options"></ul>',
@@ -98,7 +103,7 @@
                 else options.data = $.merge(ddSelect, options.data);
 
                 //Replace HTML select with empty placeholder, keep the original
-                var original = obj, placeholder = $('<div>').attr('id', obj.attr('id') + '-dd-placeholder');
+                var original = obj, placeholder = $('<div>').attr('id', obj.attr('id') + '-dd-placeholder').attr('tabindex', '0');
                 obj.replaceWith(placeholder);
                 obj = placeholder;
 
@@ -179,6 +184,13 @@
                         $('.dd-click-off-close').slideUp(50).siblings('.dd-select').find('.dd-pointer').removeClass('dd-pointer-up');
                     });
                 }
+
+                //keyboard events
+                if (options.enableKeyboard) {
+                    obj.on('keydown.ddslick', function (e) {
+                        return handleKeyboardEvent(obj, e);
+                    });
+                }
             }
         });
     };
@@ -240,7 +252,7 @@
     }
 
     //Private: Select index
-    function selectIndex(obj, index) {
+    function selectIndex(obj, index, closeAfterSelection) {
 
         //Get plugin data
         var pluginData = obj.data('ddslick');
@@ -285,7 +297,9 @@
         obj.data('ddslick', pluginData);
 
         //Close options on selection
-        close(obj);
+        if (closeAfterSelection === undefined || closeAfterSelection) {
+            close(obj);
+        }
 
         //Adjust appearence for selected option
         adjustSelectedHeight(obj);
@@ -359,6 +373,55 @@
                 $this.find('.dd-option-text').css('lineHeight', lOHeight);
             }
         });
+    }
+	
+	//Private: Handles keyboard events
+	function handleKeyboardEvent(obj, e) {
+        var ddOptions = obj.find('.dd-select').siblings('.dd-options'), pluginData = obj.data('ddslick');
+        var key = e.keyCode || e.which ;
+        if(e.altKey && key == keyCode.downArrow) {
+            open(obj);
+            return false;
+        } else if (key == keyCode.enter) {
+            if (ddOptions.is(':visible')) {
+                close(obj);
+            }
+            return false;
+        } else if (key == keyCode.leftArrow || key == keyCode.upArrow) {
+            var prevSelection = pluginData.selectedIndex - 1;
+            if (prevSelection >= 0) {
+                keyboardEventSelectionChange(obj, ddOptions, prevSelection);
+            }
+            return false;
+        } else if (key == keyCode.rightArrow || key == keyCode.downArrow) {
+            var nextSelection = pluginData.selectedIndex + 1;
+            if (nextSelection < pluginData.settings.data.length) {
+                keyboardEventSelectionChange(obj, ddOptions, nextSelection);
+            }
+            return false;
+        } else if (key == keyCode.pageUp || key == keyCode.home){
+            if (pluginData.selectedIndex != 0) {
+                keyboardEventSelectionChange(obj, ddOptions, 0);
+            }
+            return false;
+        } else if (key == keyCode.pageDown || key == keyCode.end) {
+            if (pluginData.selectedIndex != pluginData.settings.data.length - 1) {
+                keyboardEventSelectionChange(obj, ddOptions, pluginData.settings.data.length - 1);
+            }	
+            return false;
+        } else {
+            return true;
+        }		
+    }
+
+    //Private: changes selection handling keyboard event
+    function keyboardEventSelectionChange(obj, ddOptions, newSelection) {
+        var wasOpen = ddOptions.is(':visible');
+        if (wasOpen) {
+            selectIndex(obj, newSelection, false);							
+        } else {
+            selectIndex(obj, newSelection);
+        }		
     }
 
 })(jQuery);
