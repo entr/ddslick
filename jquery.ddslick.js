@@ -33,7 +33,7 @@
         clickOffToClose: true,
 		embedCSS: true,
         onSelected: function () { },
-		enableKeyboard: true,
+		enableKeyboard: true
     },
 
     keyCode = {
@@ -47,8 +47,10 @@
                 '.dd-select{ border-radius:2px; border:solid 1px #ccc; position:relative; cursor:pointer;}' +
                 '.dd-desc { color:#aaa; display:block; overflow: hidden; font-weight:normal; line-height: 1.4em; }' +
                 '.dd-selected{ overflow:hidden; display:block; padding:10px; font-weight:bold;}' +
+                '.dd-disabled .dd-selected{ color: #8293a9;}' +
                 '.dd-pointer{ width:0; height:0; position:absolute; right:10px; top:50%; margin-top:-3px;}' +
                 '.dd-pointer-down{ border:solid 5px transparent; border-top:solid 5px #000; }' +
+                '.dd-disabled .dd-pointer-down{ transparent; border-top:solid 5px #8293a9; }' +
                 '.dd-pointer-up{border:solid 5px transparent !important; border-bottom:solid 5px #000 !important; margin-top:-8px;}' +
                 '.dd-options{ border:solid 1px #ccc; border-top:none; list-style:none; box-shadow:0px 1px 5px #ddd; display:none; position:absolute; z-index:2000; margin:0; padding:0;background:#fff; overflow:auto;}' +
                 '.dd-option{ padding:10px; display:block; border-bottom:solid 1px #ddd; overflow:hidden; text-decoration:none; color:#333; cursor:pointer;-webkit-transition: all 0.25s ease-in-out; -moz-transition: all 0.25s ease-in-out;-o-transition: all 0.25s ease-in-out;-ms-transition: all 0.25s ease-in-out; }' +
@@ -115,6 +117,11 @@
                 obj.find("input.dd-selected-value")
                     .attr("id", $(original).attr("id"))
                     .attr("name", $(original).attr("name"));
+                
+                //Disable if original is disabled
+                if ($(original).is(":disabled")) {
+                    disable(obj)
+                }
 
                 //Get newly created ddOptions and ddSelect to manipulate
                 var ddSelect = obj.find('.dd-select'),
@@ -242,7 +249,23 @@
             }
         });
     }
-    
+
+    //Public method to disable drop down
+    methods.disable = function () {
+        return this.each(function () {
+            var $this = $(this);
+            disable($this);
+        });
+    };
+	
+    //Public method to bnable drop down
+    methods.enable = function () {
+        return this.each(function () {
+            var $this = $(this);
+            enable($this);
+        });
+    };	
+
      //Private: Select id
     function selectId(obj, id) {
     
@@ -312,30 +335,31 @@
 
     //Private: Close the drop down options
     function open(obj) {
+		if (!isDisabled(obj)) {
+		    var $this = obj.find('.dd-select'),
+                ddOptions = $this.siblings('.dd-options'),
+                ddPointer = $this.find('.dd-pointer'),
+                wasOpen = ddOptions.is(':visible');
 
-        var $this = obj.find('.dd-select'),
-            ddOptions = $this.siblings('.dd-options'),
-            ddPointer = $this.find('.dd-pointer'),
-            wasOpen = ddOptions.is(':visible');
-
-        //Close all open options (multiple plugins) on the page
-        $('.dd-click-off-close').not(ddOptions).slideUp(50);
-        $('.dd-pointer').removeClass('dd-pointer-up');
-        $this.removeClass('dd-open');
-
-        if (wasOpen) {
-            ddOptions.slideUp('fast');
-            ddPointer.removeClass('dd-pointer-up');
+            //Close all open options (multiple plugins) on the page
+            $('.dd-click-off-close').not(ddOptions).slideUp(50);
+            $('.dd-pointer').removeClass('dd-pointer-up');
             $this.removeClass('dd-open');
-        }
-        else {
-            $this.addClass('dd-open');
-            ddOptions.slideDown('fast');
-            ddPointer.addClass('dd-pointer-up');
-        }
 
-        //Fix text height (i.e. display title in center), if there is no description
-        adjustOptionsHeight(obj);
+            if (wasOpen) {
+                ddOptions.slideUp('fast');
+                ddPointer.removeClass('dd-pointer-up');
+                $this.removeClass('dd-open');
+            }
+            else {
+                $this.addClass('dd-open');
+                ddOptions.slideDown('fast');
+                ddPointer.addClass('dd-pointer-up');
+            }
+
+            //Fix text height (i.e. display title in center), if there is no description
+            adjustOptionsHeight(obj);
+        }
     }
 
     //Private: Close the drop down options
@@ -346,6 +370,28 @@
         obj.find('.dd-pointer').removeClass('dd-pointer-up').removeClass('dd-pointer-up');
     }
 
+    //Private: Disable the drop down options
+    function isDisabled(obj) {
+        if (obj.hasClass('dd-disabled')) {
+            return true;
+        }
+        return false;
+    }
+	
+    //Private: Disable the drop down options
+    function disable(obj) {
+        obj.addClass('dd-disabled');
+		obj.removeAttr('tabindex');
+    }
+
+    //Private: Disable the drop down options
+    function enable(obj) {
+        if (obj.hasClass('dd-disabled')) {
+            obj.removeClass('dd-disabled');
+			obj.attr('tabindex', '0');
+        }
+    }
+	
     //Private: Adjust appearence for selected option (move title to middle), when no desripction
     function adjustSelectedHeight(obj) {
 
